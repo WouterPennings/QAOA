@@ -75,7 +75,7 @@ QAOA’s three main steps of this paper’s implementation (@qaoa_code) are desc
 After these steps a QAOA circuit is created and can be measured to find the maxcut of a graph. We will be directly looking at the probabilities of the simulator instead of measuring the statevector thousands of times. Looking directly at the probabilities of the statevector is only possible in simulators. It does not change the results of the quantum circuit as with enough measurements the results would reflect the probabilities of the statevector anyway. It does make the simulation process faster as measuring a circuit 100.000 times does take a significant amount of time. In the case of a noisy circuit, the circuit is executed a hundred times, and a mean of the probabilities is taken. The probabilities of the noisy circuit are indeterministic, therefore, the probabilities can be quite different between executes; requiring several executes. 
 
 #figure(
-  image("../ssrn-scribe/images/qaoa_code.png", width: 75%),
+  image("images/qaoa_code.png", width: 75%),
   caption: [Example implemenation of QAOA, implemented in QuantumSim],
 ) <qaoa_code>
 
@@ -118,6 +118,11 @@ After these steps a QAOA circuit is created and can be measured to find the maxc
   )
 ) <noiseless_low_results_table>
 
+  #figure(
+    image("images/qaoa_low_connectivity.png", width: 100%),
+    caption: [This graph show how well QAOA performance a maxcut on a variety of graphs will different sizes with low connectivity by comparing multiple metrics to `Maxcut bruteforce`],
+  ) <qaoa_low_connectivity>
+
 === High connectivity
 #show table.cell.where(y: 0): set text(weight: "bold")
 
@@ -149,6 +154,11 @@ After these steps a QAOA circuit is created and can be measured to find the maxc
     [15], [41.00], [42.16], [48.38], [48.80], [48.24], [48], [53], [@graph_15_high],
   )
 ) <noiseless_high_results_table>
+
+  #figure(
+    image("images/qaoa_high_connectivity.png", width: 100%),
+    caption: [This graph show how well QAOA performance a maxcut on a variety of graphs will different sizes with high connectivity by comparing multiple metrics to `Maxcut bruteforce`],
+  ) <qaoa_high_connectivity>
 
 = Discussion
 
