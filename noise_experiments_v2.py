@@ -1,6 +1,7 @@
 from quantumsim.quantumsim import Circuit, Dirac
 import networkx as nx
 from spsa import minimize as minimize_spsa
+from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import numpy as np
 import concurrent.futures
@@ -72,22 +73,22 @@ def compute_average_cut_size_from_probabilities(nodes:list, edges:list, state_ve
 
     # Compute average cut size from probabilities
     sum_cut_size = 0
-    for i in range(2**nr_qubits):
+    for i in top_indices:  # Only iterate over top N indices
         string = Dirac.state_as_string(i, nr_qubits)
         bit_string = string[1:-1]
         partition = {node: bit_string[node] for node in nodes}
         partition_cut_size = cut_size(edges, partition)
-        sum_cut_size += partition_cut_size*mean_probabilities[i]
+        sum_cut_size += partition_cut_size * mean_probabilities[i]
 
-    average_cut_size = sum_cut_size/np.sum(mean_probabilities[top_indices])
+    average_cut_size = sum_cut_size / np.sum(mean_probabilities[top_indices])
     return average_cut_size
 
-def compute_max_cut_from_probabilities(nodes: list, edges: list, state_vector: list) -> int:
+def compute_max_cut_from_probabilities(nodes: list, edges: list, state_vectors: list) -> int:
     # Determine the number of qubits
-    nr_qubits = int(np.log2(len(state_vector)))
+    nr_qubits = len(nodes)
 
     # Determine the probabilities
-    probabilities = np.square(np.abs(state_vector))
+    probabilities = np.square(np.abs(state_vectors))
 
     # Normalize probabilities
     probabilities /= np.sum(probabilities)
@@ -108,41 +109,58 @@ def compute_max_cut_from_probabilities(nodes: list, edges: list, state_vector: l
 
 def plot_probability_distribution_noise(state_vectors, file_name, noise_factor=1):
     """
-    Create a bar plot showing average and standard deviation of 
-    probabilities of occurrences of classical states.
+    Create a bar plot showing average, standard deviation,
+    minimum, and maximum of probabilities of classical states.
 
     Parameters:
     state_vectors : list of state vectors. 
-    
-    A state vector is an array of 2^N complex numbers representing the quantum state of a circuit of size N
+        A state vector is an array of 2^N complex numbers representing the quantum state of a circuit of size N
     """
-
     # Determine the number of qubits
     nr_qubits = int(np.log2(len(state_vectors[0])))
 
-    # Determine the probabilities
-    probalities = np.square(np.abs(state_vectors))
-    
-    # For a noisy circuit, the sum of probabilities may not be equal to one
-    probalities = [prob / np.sum(prob) for prob in probalities]
+    # Compute probabilities from state vectors
+    probabilities = np.square(np.abs(state_vectors))
+    probabilities = [prob / np.sum(prob) for prob in probabilities]  # Normalize
 
-    # Compute mean and standard deviation for each index
-    mean_probalities = np.mean(probalities, axis=0).flatten()
-    std_probabilities = np.std(probalities, axis=0).flatten()
+    # Convert to numpy array for easier stats
+    probabilities = np.array(probabilities)
 
-    # Create the labels for the x-axis
-    labels = [Dirac.state_as_string(i, nr_qubits) for i in range(2**nr_qubits)]
+    # Mean, standard deviation, min, max
+    mean_probabilities = np.mean(probabilities, axis=0).flatten()
+    std_probabilities = np.std(probabilities, axis=0).flatten()
+    min_probabilities = np.min(probabilities, axis=0)
+    max_probabilities = np.max(probabilities, axis=0)
 
-    # Clear previous plot  
+    # Labels for classical states
+    labels = [Dirac.state_as_string(i, nr_qubits) for i in range(2 ** nr_qubits)]
+    x = np.arange(len(labels))
+
+    # Plot setup
     plt.clf()
-    # Show the distribution of probabilities using a bar plot
-    plt.bar(labels, mean_probalities, yerr=std_probabilities, capsize=3)
+    plt.figure(figsize=(10, 6))
+    
+    # Clip lower error to prevent going below 0
+    lower_errors = np.minimum(std_probabilities, mean_probabilities)
+    upper_errors = std_probabilities
+    error_bars = np.array([lower_errors, upper_errors])
+
+    # Bar plot with error bars
+    plt.bar(x, mean_probabilities, yerr=error_bars, capsize=3, label='Mean ± Std Dev')
+
+    # Scatter plot for min/max
+    plt.scatter(x, min_probabilities, color='yellow', marker='^', label='Min', zorder=5)
+    plt.scatter(x, max_probabilities, color='red', marker='v', label='Max', zorder=5)
+
     if nr_qubits > 3:
-        plt.xticks(rotation='vertical')
+        plt.xticks(x, labels, rotation='vertical')
+    else:
+        plt.xticks(x, labels)
+
     plt.xlabel('Classical states')
     plt.ylabel('Probability')
-    plt.title(f'Mean and stadard deviation of probabilities (noise_factor={noise_factor})')
-    
+    plt.title(f'Mean, Std Dev, Min & Max Probabilities (noise_factor={noise_factor})')
+    plt.legend()
     plt.tight_layout()
     plt.savefig(file_name)
 
@@ -203,8 +221,28 @@ nodes = [0, 1, 2, 3, 4]
 edges = [(0,1), (0,2), (1,2), (1,3), (2,3), (1,4), (2,4), (3,4)]
 
 NOISE_FACTORS = [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]
-NUM_OPTIMIZATION_ITERATIONS_SPSA = 10
+NUM_OPTIMIZATION_ITERATIONS_SPSA = 5
 DATA_PATH = "data_noise/data.toml"
+TOP_N = [10, 5, 3]
+EXECUTIONS = 30
+
+def to_file(file_name, noise_factor, average_cut_size_random, optimal_average_cut_size, average_cut_size_top_n, maxcut_qaoa, optimal_cut_size, gamma, beta, p):
+    with open(DATA_PATH, 'a') as file:
+        file.writelines([
+            f"\n[{file_name}]",
+            f"\nnoise_factor = {noise_factor}",
+            f"\nmean_random = {average_cut_size_random}",
+            f"\nmean = {optimal_average_cut_size}",
+            f"\nmean_top_{TOP_N[0]} = {average_cut_size_top_n[0]}",
+            f"\nmean_top_{TOP_N[1]} = {average_cut_size_top_n[1]}",
+            f"\nmean_top_{TOP_N[2]} = {average_cut_size_top_n[2]}",
+            f"\nmaxcut_qaoa = {maxcut_qaoa}",
+            f"\nmaxcut_bruteforce = {optimal_cut_size}",
+            f"\ngamma = {list(gamma)}",
+            f"\nbeta = {list(beta)}",
+            f"\np = {p}",
+            "\n"
+        ])
 
 def run(noise_factor):
     print(noise_factor)
@@ -233,7 +271,7 @@ def run(noise_factor):
         gamma = parameters[:p]
         beta = parameters[p:] 
         circuit = qaoa_circuit(gamma, beta, nodes, edges, p, noise_factor=noise_factor)
-        statevectors = execute_circuit(circuit)
+        statevectors = execute_circuit(circuit, nr_executions=EXECUTIONS)
         average_cut_size = compute_average_cut_size_from_probabilities(nodes, edges, statevectors)
 
         if average_cut_size > optimal_average_cut_size:
@@ -251,38 +289,24 @@ def run(noise_factor):
     print("Optimized")
 
     # Finding average cut size for top N of probabilities
-    top_n = [10, 5, 3]
     average_cut_size_top_n = []
-    for n in top_n:
+    for n in TOP_N:
         average_cut_size_top_n.append(compute_average_cut_size_from_probabilities(nodes, edges, optimal_statevectors, top_n=n))
 
     # Finding actual maxcut based on probabilities
-    maxcut = compute_max_cut_from_probabilities(nodes, edges, optimal_statevectors)
+    maxcut_qaoa = compute_max_cut_from_probabilities(nodes, edges, optimal_statevectors)
 
     # Plotting probabilities
     file_name = f"noise_{noise_factor}.png"
     plot_probability_distribution_noise(optimal_statevectors, file_name, noise_factor=noise_factor)
 
-    with open(DATA_PATH, 'a') as file:
-        file.writelines([
-            f"\n[{file_name}]",
-            f"\nnoise_factor = {noise_factor}",
-            f"\navg_random = {average_cut_size_random}",
-            f"\navg = {optimal_average_cut_size}",
-            f"\navg_top_{top_n[0]} = {average_cut_size_top_n[0]}",
-            f"\navg_top_{top_n[1]} = {average_cut_size_top_n[1]}",
-            f"\navg_top_{top_n[2]} = {average_cut_size_top_n[2]}",
-            f"\nmaxcut_qaoa = {maxcut}",
-            f"\nmaxcut_bruteforce = {optimal_cut_size}",
-            f"\ngamma = {list(gamma)}",
-            f"\nbeta = {list(beta)}",
-            f"\np = {p}",
-            "\n"
-        ])
+    to_file(file_name, noise_factor, average_cut_size_random, optimal_average_cut_size, average_cut_size_top_n, maxcut_qaoa, optimal_cut_size, gamma, beta, p)
 
 def main():
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        executor.map(run, NOISE_FACTORS)
+    # with concurrent.futures.ProcessPoolExecutor() as executor:
+    #     executor.map(run, NOISE_FACTORS)
+    for noise in NOISE_FACTORS:
+        run(noise)
 
 if __name__ == '__main__':
     main()
