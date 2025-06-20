@@ -15,13 +15,14 @@
       name: "Wouter Pennings",
       affiliation: "Fontys University of Applied Sciences",
       email: "465288@student.fontys.nl",
-    )
+    ),
   ),
   date: "June 2025",
   abstract: lorem(80), // replace lorem(80) with [ Your abstract here. ]
   keywords: [Quantum computing, QAOA, Quantum noise, Graphs, Maxcut, Optimization],
+  // JEL: [G11, G12],
+  acknowledgments: "Qin Zhoa and Nico Kuijpers were my supervisor during the process of the paper.", 
   bibliography: bibliography("ref.bib", title: "References", style: "ieee"),
-  acknowledgments: "Nico Kuijpers and Qin Zhao were my supervisors throughout the process of writing this paper."
 )
 
 = Introduction <sec:introduction>
@@ -43,9 +44,6 @@ Two types of experiments are conducted. The first type, noisy experiments, aims 
 For the ideal experiments, graphs consist of 4, 5, 6, 7, 8, 9, 10, or 15 nodes with randomly generated edges. Each size category has two variants: low connectivity and high connectivity. Low connectivity implies a 40% chance of connection between nodes, while high connectivity implies an 80% chance. This results in a total of sixteen distinct graphs, all generated using NetworkX.
 
 The noisy experiments utilize a single graph, referred to as the "house with a X" (@house_with_x). These experiments explore how increasing noise levels degrade QAOA's effectiveness. The noise levels, implemented as `noise_factor`, considered are 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, and 1. Baseline experiments include randomly selected max-cut instances and an ideal circuit simulation. The noise models are based on Di Bartolomeo et al.'s implementation @di_bartolomeo_noisy_2023, with parameters used from Qiskit Kyiv quantum computer. These parameters represent the single-qubit depolarizing error probability (`p`), amplitude damping time of a qubit in ns (`T1`) and the dephasing time ofa qubit in ns (`T2`). `P` is multiplied by `noise_factor` while `T1` and `T2` are divided by `noise_factor` as they are inversy proportional to `noise_factor`.  
-```python
-
-```
 
 #figure(
   image("../data_noise/graph.png", width: 50%),
@@ -81,7 +79,7 @@ QAOA’s three main steps of this paper’s implementation (@qaoa_code) are desc
 ) <qaoa_circuit>
 
 
-After these steps a QAOA circuit is created and can be measured to find the maxcut of a graph. We will be directly looking at the probabilities of the simulator instead of measuring the statevector thousands of times. Looking directly at the probabilities of the statevector is only possible in simulators. It does not change the results of the quantum circuit as with enough measurements the results would reflect the probabilities of the statevector anyway. It does make the simulation process faster as measuring a circuit 100.000 times does take a significant amount of time. In the case of a noisy circuit, the circuit is executed a hundred times, and a mean of the probabilities is taken. The probabilities of the noisy circuit are indeterministic, therefore, the probabilities can be quite different between executes; requiring several executes. 
+After these steps a QAOA circuit is created and can be measured to find the maxcut of a graph. We will be directly looking at the probabilities of the simulator instead of measuring the statevector thousands of times. Looking directly at the probabilities of the statevector is only possible in simulators. It does not change the results of the quantum circuit as with enough measurements the results would reflect the probabilities of the statevector anyway. It does make the simulation process faster as measuring a circuit 100.000 times does take a significant amount of time. In the case of a noisy circuit, the circuit is executed a 30 times, and a mean of the probabilities is taken. The probabilities of the noisy circuit are indeterministic, therefore, the probabilities can be quite different between executes; requiring several executes. 
 
 = Results <sec:Results>
 
@@ -174,7 +172,7 @@ The performance and behavior of noiseless QAOA are detailed in the graphs and ta
 
 The observations and insights from the noiseless experiments include:
 - QAOA consistently outperforms random max-cut selections, even in scenarios where its performance is suboptimal.
-- For both low and high connectivity experiments, QAOA accurately identifies the most optimal max-cut for graphs up to $N=7$ nodes. Beyond $N=7$, specifically from $N=8$ onwards, a noticeable disparity emerges between `Maxcut QAOA` and `Maxcut bruteforce` results, with the exception of the low connectivity graph with $N=10$ nodes, where QAOA demonstrated considerable effectiveness.
+- For both low and high connectivity experiments, QAOA accurately identifies the most optimal max-cut for graphs up to $N=7$ nodes. Beyond $N=7$, specifically from $N=8$ onwards, a noticeable disparity emerges between QAOA and `Maxcut bruteforce` results, with the exception of the low connectivity graph with $N=10$ nodes, where QAOA was effective.
 - Calculating the mean of all probabilities does not accurately reflect QAOA's effectiveness. It was consistently more effective to consider the average cut size of at least the top 10 cuts, or less, with the highest probabilities.
 - As graph sizes increase, across both high and low connectivity types, there is a general trend where a smaller 'N' in `Mean Top N` metrics does not necessarily correlate with a higher average cut size. This suggests that the cuts with the greatest number of edges are not always the ones associated with the highest probability.
 
