@@ -1,3 +1,10 @@
+// TODOs:
+// - Put the results of this study better in context with other papers and research.
+// - Abstract is temporary, this is bad
+// - Fix "Conceptual problem: Parameter selection"
+// - Add piece about future work in error correction codes.
+// - Where does this SPSA approach come from??? Isnt the fahri paper with the increasing beta and decreasing gamma
+
 #import "@preview/ssrn-scribe:0.7.0": *
 
 // if you do not want to use the integrated packages, you can comment out the following lines
@@ -18,7 +25,9 @@
     ),
   ),
   date: "June 2025",
-  abstract: lorem(80), // replace lorem(80) with [ Your abstract here. ]
+  abstract: [
+    This paper presents an analysis of the Quantum Approximate Optimization Algorithm (QAOA) performance across various graph types, focusing on its application to the maxcut problem. Quantum computing, leveraging phenomena such as superposition and entanglement, offers potential advancements in solving complex computational problems more efficiently than classical methods. QAOA, a hybrid quantum algorithm, combines classical and quantum computational resources to approximate solutions to optimization problems. This study explores QAOA's effectiveness in both noiseless and noisy environments using a quantum computer simulator. The noiseless experiments involve varying graph sizes and connectivity levels, for realistic noisy quantum computing conditions experiments how different levels of noise impact its performance. Key parameters of QAOA, β, γ, and `P`, are optimized using the Simultaneous Perturbation Stochastic Approximation (SPSA) method. The results indicate that QAOA performs well in identifying optimal or near-optimal max-cuts for smaller graphs but faces challenges as graph size increases. Noise significantly impacts QAOA's performance, although it still outperforms random selection methods. The study highlights the need for further research to optimize QAOA parameters and explore its scalability and robustness in practical applications. The findings highlight QAOA's potential for approximating solutions to optimization problems on small-scale graphs, while also underscoring challenges related to scalability and performance consistency in the presence of quantum noise. Limitations include the limited diversity of graphs tested, particularly in noisy experiments, and the fixed `P` parameter, suggesting avenues for future research. This study contributes valuable practical insights into QAOA's behavior, addressing a gap in comprehensive experimental analysis of quantum algorithms.
+  ], // replace lorem(80) with [ Your abstract here. ]
   keywords: [Quantum computing, QAOA, Quantum noise, Graphs, Maxcut, Optimization],
   // JEL: [G11, G12],
   acknowledgments: "Qin Zhoa and Nico Kuijpers were my supervisor during the process of the paper.", 
@@ -50,7 +59,7 @@ The noisy experiments utilize a single graph, referred to as the "house with a X
   caption: [Visualization of "house with a X"],
 ) <house_with_x>
 
-Both ideal and noisy experiments employ the Simultaneous Perturbation Stochastic Approximation (SPSA) to optimize γ and β parameters, parameter `P` is fixed at five across all experiments. SPSA's parameters are set to default values except for iteration (set to 10), learning rate (0.2), learning rate decay (0.602), and perturbation magnitude (0.2). The initial guess used in this sudy of γ and β for all layers is 0.5. There are many optimizers available, such as COBYLA, however SPSA seems to perform well in context such as these @crooks_performance_2018.
+Both ideal and noisy experiments employ the Simultaneous Perturbation Stochastic Approximation (SPSA) to optimize γ and β parameters, parameter `P` is fixed at five across all experiments. SPSA's parameters are set to default values except for iteration (set to 10), learning rate (0.2), learning rate decay (0.602), and perturbation magnitude (0.2). The initial guess used in this sudy of γ and β for all layers is 0.5. There are many optimizers available, such as COBYLA, however SPSA seems to perform well in context such as these @pellow-jarman_comparison_2021.
 
 To evaluate and compare the performance of the experiments, several evaluation metrics are used. The metrics are the same for both type of experiments. The metrics are:
 -	*mean_random*: The average cut size based on probabilities, assuming P is 0.
@@ -84,6 +93,105 @@ After these steps a QAOA circuit is created and can be measured to find the maxc
 = Results <sec:Results>
 
 == Noisy experiments
+
+@noisy_experiment_metrics_table show all metric tracked for the noisy experiments. `Noise factor` describes the amount of noise. `Mean random`, `Mean`, `Mean Top 10`, `Mean Top 5` and `Mean Top 3` all are average cut sizes, in the case of `Mean Top N` it only calculates the average cut size of the outcomes with the top N highest probabilities. `Maxcut QAOA` and `Maxcut BruteForce` show how many edges were cut. `Maxcut QAOA` is the cut with the highest probability of all possible soltions. 
+
+#show table.cell.where(y: 0): set text(weight: "bold")
+#figure(
+  table(
+    columns: (1fr, 1fr, 1fr, 1fr, 1fr, 0.7fr, 1fr, 1fr), // Adjusted for 8 columns
+    align: (center, center, center, center, center, center, center, center),
+    inset: 4pt,
+
+    // Table Headers
+    [Noise Factor],
+    [Mean Random],
+    [Mean All],
+    [Mean Top 10],
+    [Mean Top 5],
+    [Mean Top 3],
+    [MaxCut QAOA],
+    [MaxCut BruteForce],
+
+    // Data Rows
+  [Noiseless], [4.00], [4.64], [4.86], [5.08], [5.45], [6], [6],
+  [0.001], [4.00], [4.16], [4.49], [4.43], [4.15], [5], [6],
+  [0.005], [4.00], [4.15], [4.45], [4.65], [4.73], [5], [6],
+  [0.01], [4.00], [4.13], [4.46], [4.66], [5.00], [5], [6],
+  [0.05], [4.00], [4.19], [4.40], [4.40], [4.34], [5], [6],
+  [0.1], [4.00], [4.16], [4.60], [5.18], [5.00], [5], [6],
+  [0.5], [4.00], [4.11], [4.70], [4.65], [5.00], [5], [6],
+  [1.0], [4.00], [4.13], [4.71], [4.82], [4.73], [5], [6],
+  ),
+  caption: "This table shows all the metrics tracked for the noisy experiments, including the noiseless run, conducted on the \"house with an X\" graph (Figure 1)."
+) <noisy_experiment_metrics_table>
+
+
+#figure(
+  image("images/qaoa_noise_graph.png", width: 100%),
+  caption: [This graph shows the same data as @noisy_experiment_metrics_table.],
+) <qaoa_noise_graph>
+
+=== Probability plots
+
+Probability plots illustrate the likelihood of each possible quantum state. The sum of all probabilities for a given plot is 1, with individual probabilities ranging from 0 to 1. These probabilities describe the chance that a specific state will be the outcome when a quantum circuit is measured.
+
+The plots present results for various conditions:
+- @data_noise_noiseless represents the probabilities for an ideal, noiseless circuit.
+- @data_noise_0.001, @data_noise_0.005, @data_noise_0.01, @data_noise_0.05, @data_noise_0.1, @data_noise_0.5, and @data_noise_1 show the probabilities for each experiment at its specific noise factor.
+- The black bar indicates the standard deviation.
+- The red and yellow arrows mark the upper and lower bounds of each possible outcome, derived from 30 executions.
+
+At the bottom of each probability plot, labels such as `|00111>` and `|10001>` are presented. These labels represent the measured quantum states of the qubits in Dirac notation. For illustrative purposes, the state `|00111>` can be decomposed as follows:
+- Qubit 1 is in state 0 (Commenly noted as |0>)
+- Qubit 2 is in state 0 (Commenly noted as |0>)
+- Qubit 3 is in state 1 (Commenly noted as |1>)
+- Qubit 4 is in state 1 (Commenly noted as |1>)
+- Qubit 5 is in state 1 (Commenly noted as |1>)
+
+In the context of this study, these qubit states define the partitioning of a graph's nodes into the two groups of the cut graph. Each qubit represends a specific node within the graph. The state `|00111>` signifies that the first and second nodes are assigned to group A, the third, fourth, and fifth nodes are assigned to group B. This allows calculation of the number of cut edges. @data_noise_noiseless shows that `|01100>` and `|10011>` are the two outcomes with the highest probability. Noiseless or ideal probabilities for maxcut are always symmetrical, `|01100>` and `|10011>` is identical the nodes are just put into the opposite group. Noisy quantum computers have a random component to them and are indeterministic. Therefore, the probability plots of the noisy experiments, E.G. @data_noise_0.01, is not symmetrical.
+
+#figure(
+  image("../data_noise/noiseless.png", width: 100%),
+  caption: [],
+) <data_noise_noiseless>
+
+#figure(
+  image("../data_noise/noise_0.001.png", width: 100%),
+  caption: [Probabilities of noisy QAOA with a `noise_factor` of 0.001],
+) <data_noise_0.001>
+
+#figure(
+  image("../data_noise/noise_0.005.png", width: 100%),
+  caption: [Probabilities of noisy QAOA with a `noise_factor` of 0.005],
+) <data_noise_0.005>
+
+#figure(
+  image("../data_noise/noise_0.01.png", width: 100%),
+  caption: [Probabilities of noisy QAOA with a `noise_factor` of 0.01],
+) <data_noise_0.01>
+
+#figure(
+  image("../data_noise/noise_0.05.png", width: 100%),
+  caption: [Probabilities of noisy QAOA with a `noise_factor` of 0.05],
+) <data_noise_0.05>
+
+#figure(
+  image("../data_noise/noise_0.1.png", width: 100%),
+  caption: [Probabilities of noisy QAOA with a `noise_factor` of 0.1],
+) <data_noise_0.1>
+
+#figure(
+  image("../data_noise/noise_0.5.png", width: 100%),
+  caption: [Probabilities of noisy QAOA with a `noise_factor` of 0.5],
+) <data_noise_0.5>
+
+#figure(
+  image("../data_noise/noise_1.png", width: 100%),
+  caption: [Probabilities of noisy QAOA with a `noise_factor` of 1],
+) <data_noise_1>
+
+
 
 == Noiseless experiments
 
@@ -161,54 +269,78 @@ After these steps a QAOA circuit is created and can be measured to find the maxc
   caption: [This graph show how well QAOA performance a maxcut on a variety of graphs will different sizes with high connectivity by comparing multiple metrics to `Maxcut bruteforce`. Same data as @noiseless_high_results_table],
 ) <qaoa_high_connectivity>
 
-=== Conclusion
-
-
 = Discussion
+
+== Noisy experiments
+
+The experiments conducted with noise present insights into how the QAOA performs in more realistic conditions. The noiseless experiment(@data_noise_noiseless) was the only one that found the exact maxcut of the graph. Its probability plot (Figure 4) showed confidence in the solution, with the quantum states `|01100>` and `|10011>` having the highest probabilities. In contrast, all noisy experiments resulted in a maxcut of 5, which is close to optimal but not the true maximum of 6.
+
+The probability plots for noisy QAOA (@data_noise_0.001, @data_noise_0.005, @data_noise_0.01, @data_noise_0.05, @data_noise_0.1, @data_noise_0.5, and @data_noise_1) reveal large differences between executions, indicated by the wide standard deviation, minimum, and maximum values. For example, the state `|01111>` in @data_noise_1 sometimes had a probability of 0 and sometimes over 0.2. This variability clearly shows the unpredictable nature of quantum circuits when noise is present.
+
+Interestingly, the actual amount of noise did not consistently worsen the quality of the output. @qaoa_noise_graph even shows that the `Mean Top 10` metric improved as the noise factor increased, although, that is likely a coincidence. While `Mean Top 5` and `Mean Top 3` fluctuated, the `Mean` and `Mean Random` values remained consistently low. This suggests that the presence of any noise was more impactful than the specific level of noise; which is against expectations. Nevertheless, all metrics measured in the noisy experiments were still better than simply picking a solution randomly, as `Mean Random` was always the lowest value.
 
 == Noiseless experiments
 
-The performance and behavior of noiseless QAOA are detailed in the graphs and tables (@qaoa_low_connectivity, @noiseless_low_results_table, @qaoa_high_connectivity, @noiseless_high_results_table). The high connectivity graph with N=10 nodes is considered an outlier and will be excluded from the general trends and insights discussed, as it is the only instance where "Mean random" exceeded all "Mean Top N" metrics.
+The performance of QAOA without noise is detailed in the graphs and tables (@qaoa_low_connectivity, @noiseless_low_results_table, @qaoa_high_connectivity, @noiseless_high_results_table). The high connectivity graph with 10 nodes was an exception, as its `Mean random` value was higher than other `Mean Top N` metrics. This particular case was excluded from the general observations.
 
-The observations and insights from the noiseless experiments include:
+Key findings from the noiseless experiments include:
 - QAOA consistently outperforms random max-cut selections, even in scenarios where its performance is suboptimal.
-- For both low and high connectivity experiments, QAOA accurately identifies the most optimal max-cut for graphs up to $N=7$ nodes. Beyond $N=7$, specifically from $N=8$ onwards, a noticeable disparity emerges between QAOA and `Maxcut bruteforce` results, with the exception of the low connectivity graph with $N=10$ nodes, where QAOA was effective.
-- Calculating the mean of all probabilities does not accurately reflect QAOA's effectiveness. It was consistently more effective to consider the average cut size of at least the top 10 cuts, or less, with the highest probabilities.
-- As graph sizes increase, across both high and low connectivity types, there is a general trend where a smaller 'N' in `Mean Top N` metrics does not necessarily correlate with a higher average cut size. This suggests that the cuts with the greatest number of edges are not always the ones associated with the highest probability.
+
+- For both low and high connectivity graphs, QAOA found the most optimal maxcut for graphs with up to 7 nodes.
+
+- For graphs with 8 nodes or more, QAOA's results often differed from the true maximum cut found by brute force, with the exception of the low connectivity graph with 10 nodes, where QAOA was effective.
+
+- Simply calculating the mean of all probabilities did not accurately show QAOA's effectiveness. It was more useful to look at the average cut size of the top 10 (or fewer) solutions with the highest probabilities. This does indicate the the outcomes with the highest amount of cut edges are also the ones with the highest probabilities.
+
+- As graphs grew larger, for both high and low connectivity, there was a trend where focusing on a smaller number of top solutions (`Mean Top N` with smaller N) did not always lead to a higher average cut size. This indicates that the best cuts are not always the most probable ones.
+
+- QAOA's performance was not noticeably different  for low and high connectivity graphs.
+
+Why `N=10` with high connectivity is such an outlier is not understood. Similarly, `N=8` for low connectivity is also an outlier as `Mean Top 5` an `Mean Top 3` are both lower than `Mean Top 10`, eventhough this is not the case for `N=9` and `N=10`. There is no existing literature on the inconsistant performance of QAOA.
 
 In summary, these experiments indicate that QAOA provides a good approximation of the optimal Max-cut solution for small graph sizes, irrespective of connectivity levels. However, QAOA's effectiveness diminishes as graph sizes increase, while connectivity appears to have a limited impact.
 
-== Noiseless QAOA P Count
+== QAOA P Count
 
-For the experiments conducted in this study, an arbitrary constant value of $p=5$ was selected. QAOA demonstrated its weakest performance with the largest graphs ($N=15$) examined in this study, a trend also observable with $N=9$ and $N=10$. Increasing the parameter `P` could potentially allow QAOA more iterations to determine a more effective max-cut.
+In this study, the p parameter for QAOA was set to a constant value of 5 for all experiments. QAOA showed its weakest performance with the largest graphs (15 nodes), and this trend was also seen with graphs of 9 and 10 nodes. Increasing the `P` parameter could potentially allow QAOA to perform more iterations, which might help it find a more effective max-cut solution. This idea might also apply to the noisy experiments. Due to the indeterministic nature of noisy quantum computers and simulations, more layers (a higher `P` value) might be needed to find an optimal approximation.
 // TODO: THERE IS A PAPER WHICH TALKS ABOUT LARGER P SIZES BEING BETTER 
 
 == Limitations
-- Generate more than one type of graph for each experiment. QAOA sometimes behaves strangely with certain graphs. Averaging the outcomes of each experiment might have reduced that. The outliers, $N=8$ for low connectivity and $N=10$ for high connectivity, are most likely the result.
-- TODO
+This study has several limitations:
+
+// TODO: This is written very poorly
+- *Graph diversity:* Only one type of graph was used for each experiment. QAOA can behave differently with various graphs, so averaging results from multiple graph types might have reduced the impact of unusual behaviors, which likely caused the outlier results for low connectivity graphs with 8 nodes and high connectivity graphs with 10 nodes.
+
+// TODO: There is a source for this find it. It is in your note somewhere.
+- *Real-world and common Graph Structures:* The paper did not explore how QAOA performs on real-life and common graph structures, like social networks, which have distinct features that might affect QAOA's performance.
+
+- *Noisy experiment graph:* The noisy experiments used only one graph. As seen in the noiseless experiments, some graph sizes can be outliers, and the "house with X" graph used for noisy tests might also be such an outlier. 
+
+- *Number of noisy experiment executions:* The noisy experiments involved 20 executions per experiment. Because results varied greatly between runs, a few skewed executions could heavily influence the outcome. More executions, around a hundred or more), would likely provide more consistent results, however further testing is needed.
+
+- *Noise model and parameters:* This study used one approach to model noise in quantum computer simulations with a single set of parameters (Qiskit Kyiv). Exploring other noise implementations and/or different noise parameters could lead to very different results.
+
+- *Optimizer configuration:* The SPSA optimization function, used to find the best beta and gamma values, might not be ideally set up to find optimal values in a noisy quantum computer environment
 
 == Conceptual problem: Parameter selection
 
 The strategy of optimizing QAOA parameters individually for each graph raises a conceptual
-concern: using a classical optimizer, such as COBYLA, to determine parameters that yield a good
-MaxCut solution effectively involves solving the problem in advance. This introduces an apparent
-circularity to the approach. The process involves sampling a large set of parameter combinations
-and selecting those that yield favorable results. However, this raises a concern: if the goal is
-simply to identify high-quality solutions through classical optimization, would it not be more
-efficient to use a classical heuristic, such as simulated annealing, to solve MaxCut directly?
-A common response to this concern might be that exploring a wide range of QAOA parameters
-and selecting the best-performing configurations is ultimately more effective or computationally
-efficient than relying on purely classical heuristics; particularly as quantum hardware improves.
-Nonetheless, this highlights an area where further research is needed. QAOA, and quantum
-computing more broadly, remains largely theoretical and is still far from practical deployment for
-real-world problems.
-It would be especially interesting to investigate whether a set of "universal parameters" could be
-found that perform reasonably well across many graph instances, even if not optimally for each
-one. Alternatively, future work could explore whether good parameter choices can be
-heuristically "guessed" based on structural properties of the graph, such as its size, degree
-distribution, or symmetry. Such approaches could help mitigate the inefficiencies and circularity
-of instance-specific optimization, potentially making QAOA a more scalable and practical
-algorithm.
+concern: using a classical optimizer, such as COBYLA, to determine parameters that yield a good maxcut solution effectively involves solving the problem in advance. This introduces an apparent circularity to the approach. The process involves sampling a large set of parameter combinations and selecting those that yield favorable results. However, this raises a concern: if the goal is simply to identify high-quality solutions through classical optimization, would it not be more efficient to use a classical heuristic, such as simulated annealing, to solve MaxCut directly? 
+
+A common response to this concern might be that exploring a wide range of QAOA parameters and selecting the best-performing configurations is ultimately more effective or computationally
+efficient than relying on purely classical heuristics; particularly as quantum hardware improves. Nonetheless, this highlights an area where further research is needed. QAOA, and quantum computing more broadly, remains largely theoretical and is still far from practical deployment for real-world problems. It would be especially interesting to investigate whether a set of "universal parameters" could be found that perform reasonably well across many graph instances, even if not optimally for each one. 
+
+Alternatively, future work could explore whether good parameter choices can be heuristically "guessed" based on structural properties of the graph, such as its size, degree distribution, or symmetry. Such approaches could help mitigate the inefficiencies and circularity of instance-specific optimization, potentially making QAOA a more scalable and practical algorithm.
+
+= Conclusion
+
+This paper investigated the performance of the Quantum Approximate Optimization Algorithm (QAOA) in solving the maxcut problem across various graph types and under both ideal or noiseless and simulated noisy conditions. The study aimed to understand QAOA's effectiveness, its scalability, and robustness in the presence of quantum noise.
+
+In noiseless environments, QAOA consistently outperformed random selection for the maxcut problem on the graphs tested. For smaller graphs (up to 7 nodes), QAOA was effective, often finding the true maximum cut. As the graph size increased beyond 7 nodes, QAOA's ability to identify the exact max-cut diminished, regardless of graph connectivity. However, metrics like `Mean Top 10` still demonstrated that QAOA is relativally effective at approximating an optimal maxcut. But in general, these experiments demonstrate current limitation of QAOA's scalability for larger problem instances on ideal quantum computers.
+
+The noisy experiments provided insights into QAOA's behavior in more realistic scenarios. While the noiseless QAOA experiment found the optimal maxcut, the noisy implementations consistently resulted in a near-optimal cut, showing a degradation from noiseless performance. A significant observation was the high variability in outcome probabilities in the presence of noise, highlighting the inherently indeterministic nature of noisy quantum computations. Surprisingly, for the specific graph and noise model used, an increase in the noise factor did not lead to a consistent decrease in performance for certain metrics like "Mean Top 10." Despite this, QAOA under noise still performed better than random selection, demonstrating its potential even when affected by errors. In general, noisy QAOA has, just like all quantum algorithms in practice, poor performance.
+
+This research highlights that QAOA with current quantum technology, especially for smaller problems, has several challenges. The fixed `P` count in QAOA layers and the specific graph types used in this study present limitations that could influence the observed performance. Future work should explore a wider variety of graph structures, investigate the impact of optimizing the `P` parameter more effectively, and test different noise models and their parameters to gain a more comprehensive understanding of QAOA's capabilities and limitations in practical applications. Further research could also focus on developing more effective optimization strategies for QAOA parameters (γ and β) in noisy and ideal environments.
 
 #colbreak()
 = Figures <sec:figures>
